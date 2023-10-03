@@ -55,15 +55,18 @@ void create(int p, int parent) {
 }
 
 void destroy(int p) {
-    // Recursively destroy all children processes
+    // Store the list of child processes in the children array
     Node* temp = pcb[p].children;
     while (temp != NULL) {
+        // Recursively destroy all child processes
         destroy(temp->index);
         temp = temp->next;
     }
 
     // Remove the process from the children list of the parent
-    delete(&pcb[pcb[p].parent].children, p);
+    if (pcb[p].parent != p) { // Avoid deleting self from its own children list
+        delete(&pcb[pcb[p].parent].children, p);
+    }
 
     printf("Destroyed process: %d\n", p);
 }
