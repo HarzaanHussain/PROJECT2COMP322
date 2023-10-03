@@ -51,33 +51,65 @@ void create(int p, int parent) {
     // Insert the new process to the children list of the parent
     insert(&pcb[parent].children, p);
 
+    // Important: update the child field of the parent's PCB
+    insert(&pcb[parent].children, p);
+
     printf("Created process: %d (parent: %d)\n", p, parent);
 }
 
 void destroy(int p) {
-    // Store the list of child processes in the children array
-    Node* temp = pcb[p].children;
-    while (temp != NULL) {
+    // Only destroy child processes if this process has children
+    if (pcb[p].children != NULL) {
         // Recursively destroy all child processes
-        destroy(temp->index);
-        temp = temp->next;
+        Node* temp = pcb[p].children;
+        while (temp != NULL) {
+            destroy(temp->index);
+            temp = temp->next;
+        }
     }
 
-    // Remove the process from the children list of the parent
-    if (pcb[p].parent != p) { // Avoid deleting self from its own children list
-        delete(&pcb[pcb[p].parent].children, p);
+    // Remove this process from its parent's child list
+    if (pcb[p].parent != p) {
+        // Check if the process is still in its parent's child list
+        Node* temp = pcb[pcb[p].parent].children;
+        while (temp != NULL && temp->index != p) {
+            temp = temp->next;
+        }
+
+        // If the process is still in its parent's child list, remove it
+        if (temp != NULL) {
+            delete(&pcb[pcb[p].parent].children, p);
+        }
     }
+
+    // Free memory allocated for this process
+    free(pcb[p].children);
+    pcb[p].children = NULL;
+
+    // Set parent to -1 to denote deleted
+    pcb[p].parent = -1;
 
     printf("Destroyed process: %d\n", p);
 }
 
 int main() {
-    create(0, 0); // Create parent process
-    create(1, 0); // Creates 1st child of PCB[0] at PCB[1]
-    create(2, 0); // Creates 2nd child of PCB[0] at PCB[2]
-    create(3, 2); // Creates 1st child of PCB[2] at PCB[3]
-    create(4, 0); // Creates 3rd child of PCB[0] at PCB[4]
-    destroy(0); // Destroys all descendant of PCB[0], which includes processes PCB[1] through PCB[4]
+    // Create parent process
+    create(0, 0);
+
+    // Create 1st child of PCB[0] at PCB[1]
+    create(1, 0);
+
+    // Create 2nd child of PCB[0] at PCB[2]
+    create(2, 0);
+
+    // Create 1st child of PCB[2] at PCB[3]
+    create(3, 2);
+
+    // Create 3rd child of PCB[0] at PCB[4]
+    create(4, 0);
+
+    // Destroy parent process
+    destroy(0);
 
     return 0;
 }
