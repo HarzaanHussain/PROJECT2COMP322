@@ -24,7 +24,7 @@ void insert(Node** head, int index) {
 }
 
 void delete(Node** head, int index) {
-    Node* temp = *head, *prev;
+    Node* temp = *head, *prev = NULL;
 
     if (temp != NULL && temp->index == index) {
         *head = temp->next;
@@ -48,49 +48,52 @@ void create(int p, int parent) {
     pcb[p].children = NULL;
     pcb[p].state = 'R'; // Assume the ready state is 'R'
 
-    // Insert the new process to the children list of the parent
-    insert(&pcb[parent].children, p);
-
-    // Important: update the child field of the parent's PCB
+    // Insert the new process into the children list of the parent
     insert(&pcb[parent].children, p);
 
     printf("Created process: %d (parent: %d)\n", p, parent);
 }
 
 void destroy(int p) {
-    // Only destroy child processes if this process has children
-    if (pcb[p].children != NULL) {
-        // Recursively destroy all child processes
-        Node* temp = pcb[p].children;
-        while (temp != NULL) {
-            destroy(temp->index);
-            temp = temp->next;
-        }
+    // Recursively destroy all child processes and their descendants
+    Node* temp = pcb[p].children;
+    while (temp != NULL) {
+        destroy(temp->index);
+        temp = temp->next;
     }
 
     // Remove this process from its parent's child list
     if (pcb[p].parent != p) {
-        // Check if the process is still in its parent's child list
-        Node* temp = pcb[pcb[p].parent].children;
-        while (temp != NULL && temp->index != p) {
-            temp = temp->next;
-        }
+        Node* parentChildren = pcb[pcb[p].parent].children;
+        if (parentChildren != NULL && parentChildren->index == p) {
+            Node* temp = parentChildren->next;
+            free(parentChildren);
+            pcb[pcb[p].parent].children = temp;
+        } else {
+            Node* temp = parentChildren;
+            Node* prev = NULL;
 
-        // If the process is still in its parent's child list, remove it
-        if (temp != NULL) {
-            delete(&pcb[pcb[p].parent].children, p);
+            while (temp != NULL && temp->index != p) {
+                prev = temp;
+                temp = temp->next;
+            }
+
+            if (temp != NULL) {
+                prev->next = temp->next;
+                free(temp);
+            }
         }
     }
 
-    // Free memory allocated for this process
-    free(pcb[p].children);
+    // Free memory allocated for this process's child list
     pcb[p].children = NULL;
 
-    // Set parent to -1 to denote deleted
+    // Set parent to -1 to denote deletion
     pcb[p].parent = -1;
 
     printf("Destroyed process: %d\n", p);
 }
+
 
 int main() {
     // Create parent process
